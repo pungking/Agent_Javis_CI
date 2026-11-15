@@ -75,3 +75,40 @@ def validate_source_statuses(statuses: dict[str, str]) -> None:
         raise ValueError("MISSING_INDEPENDENT_PORTAL_STATUS_HOLD")
     if not all(state in ALLOWED_SOURCE_STATES for state in statuses.values()):
         raise ValueError("UNREVIEWED_PORTAL_STATUS_HOLD")
+
+
+def assess_public_synthetic_candidate(candidate: dict) -> dict:
+    """Pure safety triage: never authorize publishing or private source tests.
+
+    A field claiming operator review is only a caller assertion, not independent
+    proof of content release authorization. Every real asset still needs an
+    independent human inspection *before* files are added to the Public repo.
+    """
+    required = frozenset({
+        "kind", "origin", "private_source_included", "private_data_included",
+        "credentials_included", "copyright_documents_included",
+        "operator_content_review_claimed",
+    })
+    if not isinstance(candidate, dict) or set(candidate) != required:
+        raise ValueError("PUBLIC_CANDIDATE_SCHEMA_HOLD")
+    if (candidate["kind"] != "SYNTHETIC_CONTRACT"
+            or candidate["origin"] != "INDEPENDENT_PUBLIC_AUTHORING"):
+        raise ValueError("PRIVATE_OR_UNREVIEWED_ORIGIN_HOLD")
+    for key in (
+        "private_source_included", "private_data_included",
+        "credentials_included", "copyright_documents_included",
+    ):
+        if candidate[key] is not False:
+            raise ValueError("PUBLIC_PAYLOAD_LEAK_HOLD")
+    if candidate["operator_content_review_claimed"] is not True:
+        raise ValueError("HUMAN_CONTENT_REVIEW_REQUIRED_HOLD")
+    return {
+        "scope": "PUBLIC_SYNTHETIC_ONLY",
+        "state": "SYNTHETIC_CANDIDATE_ASSERTION_ONLY",
+        "public_release_authorized": False,
+        "private_agent_javis_source_tested": False,
+        "private_agent_javis_brain_source_tested": False,
+        "private_pr_merge_gate_passed": False,
+        "review_claim_independently_verified": False,
+        "network_or_private_repo_requests": 0,
+    }
