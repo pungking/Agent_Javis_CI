@@ -8,6 +8,9 @@ ALLOWLIST = frozenset({
     "docs/SECURITY_BOUNDARY.md", "javis_public_ci/__init__.py",
     "javis_public_ci/contracts.py", "scripts/publish_public_repo.sh",
     "tests/test_contracts.py", "tests/test_repository_boundary.py",
+    "docs/CI_MIGRATION_01.md", "javis_public_ci/evidence.py",
+    "javis_public_ci/synthetic_gates.py", "tests/test_evidence.py",
+    "tests/test_synthetic_gates.py",
 })
 
 
