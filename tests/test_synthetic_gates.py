@@ -115,6 +115,15 @@ class PublicOnlyDeliveryContractTests(unittest.TestCase):
                 with self.assertRaises(PublicSyntheticInputError):
                     assess_synthetic_delivery(sample_delivery(**kwargs))
 
+    def test_malformed_nonhashable_event_fields_fail_closed(self):
+        for kwargs in ({"writer_event": []},
+                       {"writer_state": {}},
+                       {"trigger_kind": []},
+                       {"writer_event": 0}):
+            with self.subTest(kwargs=kwargs):
+                with self.assertRaises(PublicSyntheticInputError):
+                    assess_synthetic_delivery(sample_delivery(**kwargs))
+
     def test_secret_or_private_raw_evidence_key_rejected(self):
         for kwargs in ({"token": "not-a-real-token"},
                        {"raw_markdown": "not-real"},
@@ -178,6 +187,13 @@ class PublicOnlyMissionContractTests(unittest.TestCase):
                 result = assess_synthetic_mission(sample_mission(
                     current_state=current, next_state=nxt, human_approved=True))
                 self.assertEqual(result["scenario"], "PUBLIC_SYNTHETIC_DENY")
+
+    def test_malformed_nonhashable_mission_states_fail_closed(self):
+        for kwargs in ({"current_state": []}, {"next_state": {}},
+                       {"current_state": 1}):
+            with self.subTest(kwargs=kwargs):
+                with self.assertRaises(PublicSyntheticInputError):
+                    assess_synthetic_mission(sample_mission(**kwargs))
 
     def test_unknown_or_unmarked_mission_is_rejected(self):
         for overrides in ({"current_state": "OPEN"}, {"next_state": "OPEN"},
