@@ -2,6 +2,7 @@ import unittest
 
 from javis_public_ci.contracts import (
     Notice, candidate_union, validate_source_statuses,
+    assess_public_synthetic_candidate,
 )
 
 URLS = {
@@ -69,6 +70,82 @@ class IndependentDiscovery(unittest.TestCase):
     def test_14_fake_userinfo_is_rejected(self):
         with self.assertRaises(ValueError):
             Notice("IRIS", "A", "B", "C", "https://user@www.iris.go.kr/main.do")
+
+
+def synthetic_release_case():
+    return {
+        "kind": "SYNTHETIC_CONTRACT",
+        "origin": "INDEPENDENT_PUBLIC_AUTHORING",
+        "private_source_included": False,
+        "private_data_included": False,
+        "credentials_included": False,
+        "copyright_documents_included": False,
+        "operator_content_review_claimed": True,
+    }
+
+
+class PublicSyntheticReleaseGate(unittest.TestCase):
+    def _denied(self, key, value):
+        record = synthetic_release_case()
+        record[key] = value
+        with self.assertRaises(ValueError):
+            assess_public_synthetic_candidate(record)
+
+    def test_15_reviewed_synthetic_claim_still_does_not_authorize(self):
+        result = assess_public_synthetic_candidate(synthetic_release_case())
+        self.assertEqual(result["scope"], "PUBLIC_SYNTHETIC_ONLY")
+        self.assertFalse(result["public_release_authorized"])
+        self.assertFalse(result["private_agent_javis_source_tested"])
+        self.assertFalse(result["private_agent_javis_brain_source_tested"])
+        self.assertFalse(result["private_pr_merge_gate_passed"])
+        self.assertFalse(result["review_claim_independently_verified"])
+
+    def test_16_private_source_denied(self):
+        self._denied("private_source_included", True)
+
+    def test_17_private_data_denied(self):
+        self._denied("private_data_included", True)
+
+    def test_18_credentials_denied(self):
+        self._denied("credentials_included", True)
+
+    def test_19_original_copyrighted_document_denied(self):
+        self._denied("copyright_documents_included", True)
+
+    def test_20_unverified_content_denied(self):
+        self._denied("operator_content_review_claimed", False)
+
+    def test_21_wrong_origin_denied(self):
+        self._denied("origin", "PRIVATE_SOURCE_DERIVED")
+
+    def test_22_wrong_kind_denied(self):
+        self._denied("kind", "PRIVATE_TEST")
+
+    def test_23_extra_claim_of_private_ci_pass_denied(self):
+        self._denied("private_agent_javis_source_tested", True)
+
+    def test_24_missing_gate_denied(self):
+        record = synthetic_release_case()
+        del record["credentials_included"]
+        with self.assertRaises(ValueError):
+            assess_public_synthetic_candidate(record)
+
+    def test_25_weak_non_boolean_leak_false_denied(self):
+        self._denied("private_source_included", 0)
+
+    def test_26_weak_non_boolean_human_review_denied(self):
+        self._denied("operator_content_review_claimed", 1)
+
+    def test_27_non_dict_denied(self):
+        with self.assertRaises(ValueError):
+            assess_public_synthetic_candidate([])
+
+    def test_28_submitted_real_pdf_marker_denied(self):
+        self._denied("copyright_documents_included", "pending")
+
+    def test_29_never_forges_provider_or_network_evidence(self):
+        result = assess_public_synthetic_candidate(synthetic_release_case())
+        self.assertEqual(result["network_or_private_repo_requests"], 0)
 
 
 if __name__ == "__main__":
