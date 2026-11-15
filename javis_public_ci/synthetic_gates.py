@@ -64,6 +64,9 @@ def assess_synthetic_delivery(packet: dict) -> dict:
         _digest(packet[key])
     if type(packet["archive_count"]) is not int or not 0 <= packet["archive_count"] <= 100:
         raise PublicSyntheticInputError("ARCHIVE_COUNT_FORMAT_HOLD")
+    if any(type(packet[k]) is not str
+           for k in ("writer_event", "writer_state", "trigger_kind")):
+        raise PublicSyntheticInputError("EVENT_AND_STATE_TYPE_HOLD")
     if (packet["writer_event"] not in _ALLOWED_EVENTS
             or packet["writer_state"] not in _ALLOWED_WRITER_STATES
             or packet["trigger_kind"] not in _ALLOWED_TRIGGERS):
@@ -104,6 +107,9 @@ def assess_synthetic_mission(packet: dict) -> dict:
     """Illustrate a fail-closed review transition, not actual agent policy."""
     _shape(packet, _MISSION_FIELDS)
     _boolean(packet, ("human_approved", "execution_requested"))
+    if any(type(packet[k]) is not str
+           for k in ("current_state", "next_state")):
+        raise PublicSyntheticInputError("MISSION_STATE_TYPE_HOLD")
     if (packet["current_state"] not in _ALLOWED_MISSION_STATES
             or packet["next_state"] not in _ALLOWED_MISSION_STATES):
         raise PublicSyntheticInputError("UNKNOWN_MISSION_STATE_HOLD")
