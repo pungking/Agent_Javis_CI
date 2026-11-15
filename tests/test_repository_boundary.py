@@ -6,8 +6,9 @@ ROOT = Path(__file__).resolve().parents[1]
 ALLOWLIST = frozenset({
     ".github/workflows/public-ci.yml", ".gitignore", "README.md",
     "docs/SECURITY_BOUNDARY.md", "javis_public_ci/__init__.py",
-    "javis_public_ci/contracts.py", "scripts/publish_public_repo.sh",
-    "tests/test_contracts.py", "tests/test_repository_boundary.py",
+    "javis_public_ci/contracts.py", "javis_public_ci/evidence.py",
+    "scripts/publish_public_repo.sh", "tests/test_contracts.py",
+    "tests/test_evidence.py", "tests/test_repository_boundary.py",
 })
 
 
