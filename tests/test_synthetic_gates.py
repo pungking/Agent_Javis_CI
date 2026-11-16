@@ -207,3 +207,187 @@ class PublicOnlyMissionContractTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+from javis_public_ci.synthetic_gates import assess_synthetic_brain_stage
+
+# CI-MIGRATION-02: public-only fictional negative/positive coverage.
+_FAKE_BRAIN_SHA = "d" * 64  # fixed illustrative data, not a real provenance pin
+
+
+def fictional_stage(family="readiness", **changes):
+    packets = {
+        "readiness": dict(window="due", source="verified",
+                          producer="complete", pending="present"),
+        "routing": dict(event="push", publisher="success", writer_count=1,
+                        dispatch_requested=False, credentials_used=False),
+        "packet": dict(source_digest=_FAKE_BRAIN_SHA,
+                       pending_digest=_FAKE_BRAIN_SHA,
+                       archive_digest=_FAKE_BRAIN_SHA,
+                       receipt_digest=_FAKE_BRAIN_SHA,
+                       new_receipt=True, readback=True, overwrote_existing=False),
+        "run_card": dict(event="push", run="success", job="success",
+                         step="success", attempt=1, new_archive=True, no_op=False),
+        "recovery": dict(change_kind="direct", pending_lineage=False,
+                         archive_lineage=False, receipt_linked=True,
+                         manual_override=False, recovery_failed=False),
+    }
+    result = dict(fixture_kind="SYNTHETIC_ONLY", family=family, **packets[family])
+    result.update(changes)
+    return result
+
+
+class BrainMigration02SyntheticContracts(unittest.TestCase):
+    def assertConsistentOnly(self, packet):
+        answer = assess_synthetic_brain_stage(packet)
+        self.assertEqual(answer["scenario"],
+                         "PUBLIC_SYNTHETIC_STAGE_CONSISTENT_NOT_PRIVATE_PROOF")
+        self.assertTrue(answer["public_synthetic_only"])
+        for key in ("private_brain_parity_verified", "real_evidence_verified",
+                    "operational_execution_allowed", "private_ci_replacement_allowed",
+                    "publication_authorized"):
+            self.assertFalse(answer[key])
+
+    def assertHeld(self, packet):
+        out = assess_synthetic_brain_stage(packet)
+        self.assertEqual(out["scenario"], "PUBLIC_SYNTHETIC_STAGE_HOLD")
+        self.assertFalse(out["operational_execution_allowed"])
+
+    def assertRejected(self, packet):
+        with self.assertRaises(PublicSyntheticInputError):
+            assess_synthetic_brain_stage(packet)
+
+    def test_02a_five_fictional_baselines_are_never_operational_proof(self):
+        for family in ("readiness", "routing", "packet", "run_card", "recovery"):
+            with self.subTest(family=family):
+                self.assertConsistentOnly(fictional_stage(family))
+
+    def test_02b_readiness_all_unready_states_hold(self):
+        for field, values in {"window": ("early", "unknown"),
+                              "source": ("missing", "stale"),
+                              "producer": ("missing", "failed"),
+                              "pending": ("missing",)}.items():
+            for value in values:
+                with self.subTest(field=field, value=value):
+                    self.assertHeld(fictional_stage("readiness", **{field: value}))
+
+    def test_02c_readiness_invalid_types_and_unsupported_states_reject(self):
+        for changes in ({"window": []}, {"source": 0},
+                        {"pending": True}, {"producer": "approved"},
+                        {"window": "tomorrow"}):
+            with self.subTest(changes=changes):
+                self.assertRejected(fictional_stage("readiness", **changes))
+
+    def test_02d_routing_denies_skips_duplicate_writers_and_dispatch(self):
+        changes = ({"event": "manual"}, {"event": "none"},
+                   {"publisher": "failure"}, {"publisher": "skipped"},
+                   {"publisher": "running"}, {"writer_count": 0},
+                   {"writer_count": 2}, {"writer_count": 10},
+                   {"dispatch_requested": True}, {"credentials_used": True})
+        for change in changes:
+            with self.subTest(change=change):
+                self.assertHeld(fictional_stage("routing", **change))
+
+    def test_02e_routing_rejects_unrecognized_or_wrong_type_fields(self):
+        changes = ({"event": []}, {"event": "delete"},
+                   {"publisher": None}, {"writer_count": True},
+                   {"writer_count": -1}, {"writer_count": 11},
+                   {"dispatch_requested": 1}, {"credentials_used": "false"})
+        for change in changes:
+            with self.subTest(change=change):
+                self.assertRejected(fictional_stage("routing", **change))
+
+    def test_02f_packet_refuses_digest_drift_and_missing_readback(self):
+        changes = ({"pending_digest": "b" * 64},
+                   {"archive_digest": "b" * 64},
+                   {"receipt_digest": "b" * 64},
+                   {"new_receipt": False}, {"readback": False},
+                   {"overwrote_existing": True})
+        for change in changes:
+            with self.subTest(change=change):
+                self.assertHeld(fictional_stage("packet", **change))
+
+    def test_02g_packet_requires_only_formatted_fictional_digests(self):
+        changes = ({"source_digest": "0"},
+                   {"pending_digest": "G" * 64},
+                   {"archive_digest": False},
+                   {"receipt_digest": []},
+                   {"new_receipt": 1},
+                   {"readback": "true"},
+                   {"overwrote_existing": None})
+        for change in changes:
+            with self.subTest(change=change):
+                self.assertRejected(fictional_stage("packet", **change))
+
+    def test_02h_run_card_requires_all_three_success_levels(self):
+        for field in ("run", "job", "step"):
+            for state in ("failure", "skipped", "running"):
+                with self.subTest(field=field, state=state):
+                    self.assertHeld(fictional_stage("run_card", **{field: state}))
+
+    def test_02i_run_card_denies_manual_retry_noop_and_missing_archive(self):
+        changes = ({"event": "manual"}, {"event": "none"},
+                   {"attempt": 2}, {"attempt": 3},
+                   {"no_op": True}, {"new_archive": False})
+        for change in changes:
+            with self.subTest(change=change):
+                self.assertHeld(fictional_stage("run_card", **change))
+
+    def test_02j_run_card_rejects_invalid_attempt_and_unknown_status(self):
+        changes = ({"event": 0}, {"event": "dispatch"},
+                   {"run": "pending"}, {"job": []},
+                   {"step": None}, {"attempt": True},
+                   {"attempt": -1}, {"attempt": 11},
+                   {"no_op": "yes"}, {"new_archive": 1})
+        for change in changes:
+            with self.subTest(change=change):
+                self.assertRejected(fictional_stage("run_card", **change))
+
+    def test_02k_recovery_follow_on_requires_two_independent_links(self):
+        self.assertConsistentOnly(fictional_stage(
+            "recovery", change_kind="follow_on",
+            pending_lineage=True, archive_lineage=True))
+        for field in ("pending_lineage", "archive_lineage"):
+            with self.subTest(missing=field):
+                change = {"change_kind": "follow_on", "pending_lineage": True,
+                          "archive_lineage": True}
+                change[field] = False
+                self.assertHeld(fictional_stage("recovery", **change))
+
+    def test_02l_recovery_denies_unrelated_and_unsafe_override(self):
+        changes = ({"change_kind": "unrelated"},
+                   {"receipt_linked": False},
+                   {"manual_override": True},
+                   {"recovery_failed": True})
+        for change in changes:
+            with self.subTest(change=change):
+                self.assertHeld(fictional_stage("recovery", **change))
+
+    def test_02m_recovery_rejects_unrecognized_types(self):
+        changes = ({"change_kind": "force"},
+                   {"change_kind": []},
+                   {"pending_lineage": 1},
+                   {"archive_lineage": "yes"},
+                   {"receipt_linked": None},
+                   {"manual_override": 0},
+                   {"recovery_failed": []})
+        for change in changes:
+            with self.subTest(change=change):
+                self.assertRejected(fictional_stage("recovery", **change))
+
+    def test_02n_unmarked_and_unknown_families_fail_closed(self):
+        self.assertRejected(fictional_stage("readiness", fixture_kind="PRIVATE"))
+        self.assertRejected({"fixture_kind": "SYNTHETIC_ONLY", "family": "other"})
+        self.assertRejected({"fixture_kind": "SYNTHETIC_ONLY", "family": []})
+        self.assertRejected([])
+        self.assertRejected(None)
+
+    def test_02o_unreviewed_fields_and_cross_family_data_fail_closed(self):
+        self.assertRejected(fictional_stage("readiness", secret="dummy"))
+        self.assertRejected(fictional_stage("routing", raw_log="fake"))
+        self.assertRejected(fictional_stage("packet", access_token="dummy"))
+        self.assertRejected(fictional_stage("run_card", actor_name="anonymous"))
+        self.assertRejected(fictional_stage("recovery", private_sha="dummy"))
+        self.assertRejected(fictional_stage("readiness", event="push"))
+        self.assertRejected(fictional_stage("run_card", source_digest="d" * 64))
+        self.assertRejected({"fixture_kind": "SYNTHETIC_ONLY", "family": "packet"})
