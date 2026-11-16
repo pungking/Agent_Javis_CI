@@ -142,6 +142,7 @@ _BRAIN_STAGE_FIELDS = {
     "readiness": frozenset({"fixture_kind", "family", "window", "source",
                              "producer", "pending"}),
     "routing": frozenset({"fixture_kind", "family", "event", "publisher",
+                           "publisher_trigger", "writer_trigger",
                            "writer_count", "dispatch_requested", "credentials_used"}),
     "packet": frozenset({"fixture_kind", "family", "source_digest",
                           "pending_digest", "archive_digest", "receipt_digest",
@@ -185,6 +186,8 @@ def assess_synthetic_brain_stage(packet: dict) -> dict:
         for key, allowed in {
             "event": ("push", "manual", "none"),
             "publisher": ("success", "failure", "skipped", "running"),
+            "publisher_trigger": ("manual_only", "scheduled", "push"),
+            "writer_trigger": ("main_pending_push", "manual_only", "other_push"),
         }.items():
             if type(packet[key]) is not str or packet[key] not in allowed:
                 raise PublicSyntheticInputError("ROUTING_FIELD_HOLD")
@@ -193,6 +196,8 @@ def assess_synthetic_brain_stage(packet: dict) -> dict:
             raise PublicSyntheticInputError("WRITER_COUNT_FIELD_HOLD")
         consistent = all((packet["event"] == "push",
                           packet["publisher"] == "success",
+                          packet["publisher_trigger"] == "manual_only",
+                          packet["writer_trigger"] == "main_pending_push",
                           packet["writer_count"] == 1,
                           not packet["dispatch_requested"],
                           not packet["credentials_used"]))

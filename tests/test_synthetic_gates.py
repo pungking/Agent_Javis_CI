@@ -216,6 +216,7 @@ def fictional_stage(family="readiness", **changes):
         "readiness": dict(window="due", source="verified",
                           producer="complete", pending="present"),
         "routing": dict(event="push", publisher="success", writer_count=1,
+                        publisher_trigger="manual_only", writer_trigger="main_pending_push",
                         dispatch_requested=False, credentials_used=False),
         "packet": dict(source_digest=_FAKE_BRAIN_SHA,
                        pending_digest=_FAKE_BRAIN_SHA,
@@ -387,6 +388,21 @@ class BrainMigration02SyntheticContracts(unittest.TestCase):
         self.assertRejected(fictional_stage("readiness", event="push"))
         self.assertRejected(fictional_stage("run_card", source_digest="d" * 64))
         self.assertRejected({"fixture_kind": "SYNTHETIC_ONLY", "family": "packet"})
+
+
+    def test_02p_routing_requires_manual_publisher_and_push_writer_separation(self):
+        for change in ({"publisher_trigger": "scheduled"},
+                       {"publisher_trigger": "push"},
+                       {"writer_trigger": "manual_only"},
+                       {"writer_trigger": "other_push"}):
+            with self.subTest(change=change):
+                self.assertHeld(fictional_stage("routing", **change))
+        for change in ({"publisher_trigger": []},
+                       {"publisher_trigger": "unlisted"},
+                       {"writer_trigger": None},
+                       {"writer_trigger": "unlisted"}):
+            with self.subTest(change=change):
+                self.assertRejected(fictional_stage("routing", **change))
 
 if __name__ == "__main__":
     unittest.main()
