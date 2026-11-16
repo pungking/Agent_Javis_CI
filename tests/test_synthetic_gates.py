@@ -205,10 +205,6 @@ class PublicOnlyMissionContractTests(unittest.TestCase):
                     assess_synthetic_mission(sample_mission(**overrides))
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 from javis_public_ci.synthetic_gates import assess_synthetic_brain_stage
 
 # CI-MIGRATION-02: public-only fictional negative/positive coverage.
@@ -391,3 +387,6 @@ class BrainMigration02SyntheticContracts(unittest.TestCase):
         self.assertRejected(fictional_stage("readiness", event="push"))
         self.assertRejected(fictional_stage("run_card", source_digest="d" * 64))
         self.assertRejected({"fixture_kind": "SYNTHETIC_ONLY", "family": "packet"})
+
+if __name__ == "__main__":
+    unittest.main()
