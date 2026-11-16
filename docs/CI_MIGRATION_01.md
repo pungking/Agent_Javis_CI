@@ -75,3 +75,38 @@ The pilot may be considered for acceptance only when the final Draft PR HEAD
 passes both Public Python matrix jobs and the strict repository boundary check.
 The outcome does **not** supersede Private CI, authorize external actions, or
 change any scheduled delivery freeze.
+
+
+## CI-MIGRATION-02 — Five fictional Brain-stage families (Draft, HOLD)
+
+This Public addition implements **five original synthetic teaching models**:
+readiness, routing, packet consistency, run/job/step outcomes, and recovery.
+They use only invented labels, Boolean flags and literal fake digests.
+
+- Exactly 16 new unittest methods, with multiple parameterized subtests.
+- The original Private Brain 121 candidate methods are NOT imported,
+  reimplemented line-by-line, or counted as Public equivalence.
+- Consistent synthetic inputs return a **non-operational** result:
+  no private-source parity, real Git provenance, actor authentication,
+  archive readback, deployment permission or public-release approval.
+- Unknown fields, unknown stage names, malformed types, secret/log field
+  injection and unsupported status enumerations fail closed.
+- No new files; existing Public allowlist, workflows, permissions, runner
+  matrix, secrets policy and Private repositories remain unchanged.
+- CI acceptance is limited to the final exact Public Draft PR HEAD
+  and natural Python 3.11 / 3.12 jobs, never a Private CI PASS.
+- Publication approval, merge, Private CI removal, W47, Mac/Obsidian,
+  paid providers and actual agent execution remain on HOLD.
+
+## CI-MIGRATION-03 — Synthetic routing separation refinement (HOLD)
+
+The two *fictional* event boundaries are now separate: a publisher configured
+manual-only and a single writer keyed to the synthetic main Pending push.
+Previously a generic fictional publisher success and push event could be
+mistaken for the same execution actor. Disallowed publisher auto-triggers,
+wrong writer triggers and malformed trigger labels are now denied.
+
+This remains NON-PARITY: real Brain task recurrence/actor identity, workflow
+source strings and permissions, concrete receipts and hashes, Git ancestry,
+real Run/Job/Step origin and actual archive readback are not validated here.
+Passing Public CI does not authorize Private CI replacement or W47 execution.

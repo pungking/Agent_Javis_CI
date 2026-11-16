@@ -134,3 +134,117 @@ def assess_synthetic_mission(packet: dict) -> dict:
         "real_approval_authenticated": False,
         "operational_execution_allowed": False,
     }
+
+
+# CI-MIGRATION-02: independently authored, PUBLIC SYNTHETIC stages only.
+# No actual Brain implementation, original fixture, token, path or Git data.
+_BRAIN_STAGE_FIELDS = {
+    "readiness": frozenset({"fixture_kind", "family", "window", "source",
+                             "producer", "pending"}),
+    "routing": frozenset({"fixture_kind", "family", "event", "publisher",
+                           "publisher_trigger", "writer_trigger",
+                           "writer_count", "dispatch_requested", "credentials_used"}),
+    "packet": frozenset({"fixture_kind", "family", "source_digest",
+                          "pending_digest", "archive_digest", "receipt_digest",
+                          "new_receipt", "readback", "overwrote_existing"}),
+    "run_card": frozenset({"fixture_kind", "family", "event", "run", "job",
+                            "step", "attempt", "new_archive", "no_op"}),
+    "recovery": frozenset({"fixture_kind", "family", "change_kind",
+                            "pending_lineage", "archive_lineage", "receipt_linked",
+                            "manual_override", "recovery_failed"}),
+}
+
+
+def assess_synthetic_brain_stage(packet: dict) -> dict:
+    """Check original PUBLIC-ONLY fictional scenarios, never real Brain parity.
+
+    A consistent synthetic packet is not permission to run, publish, merge,
+    dispatch, authenticate operators, or replace confidential regression.
+    """
+    if type(packet) is not dict or type(packet.get("family")) is not str:
+        raise PublicSyntheticInputError("SYNTHETIC_FAMILY_SCHEMA_HOLD")
+    family = packet["family"]
+    if family not in _BRAIN_STAGE_FIELDS:
+        raise PublicSyntheticInputError("UNKNOWN_SYNTHETIC_FAMILY_HOLD")
+    _shape(packet, _BRAIN_STAGE_FIELDS[family])
+
+    if family == "readiness":
+        choices = {
+            "window": ("due", "early", "unknown"),
+            "source": ("verified", "missing", "stale"),
+            "producer": ("complete", "failed", "missing"),
+            "pending": ("present", "missing"),
+        }
+        for key, allowed in choices.items():
+            if type(packet[key]) is not str or packet[key] not in allowed:
+                raise PublicSyntheticInputError("READINESS_FIELD_HOLD")
+        consistent = all((packet["window"] == "due",
+                          packet["source"] == "verified",
+                          packet["producer"] == "complete",
+                          packet["pending"] == "present"))
+    elif family == "routing":
+        for key, allowed in {
+            "event": ("push", "manual", "none"),
+            "publisher": ("success", "failure", "skipped", "running"),
+            "publisher_trigger": ("manual_only", "scheduled", "push"),
+            "writer_trigger": ("main_pending_push", "manual_only", "other_push"),
+        }.items():
+            if type(packet[key]) is not str or packet[key] not in allowed:
+                raise PublicSyntheticInputError("ROUTING_FIELD_HOLD")
+        _boolean(packet, ("dispatch_requested", "credentials_used"))
+        if type(packet["writer_count"]) is not int or not 0 <= packet["writer_count"] <= 10:
+            raise PublicSyntheticInputError("WRITER_COUNT_FIELD_HOLD")
+        consistent = all((packet["event"] == "push",
+                          packet["publisher"] == "success",
+                          packet["publisher_trigger"] == "manual_only",
+                          packet["writer_trigger"] == "main_pending_push",
+                          packet["writer_count"] == 1,
+                          not packet["dispatch_requested"],
+                          not packet["credentials_used"]))
+    elif family == "packet":
+        _boolean(packet, ("new_receipt", "readback", "overwrote_existing"))
+        fields = ("source_digest", "pending_digest", "archive_digest", "receipt_digest")
+        for key in fields:
+            _digest(packet[key])
+        consistent = (len({packet[key] for key in fields}) == 1
+                      and packet["new_receipt"] and packet["readback"]
+                      and not packet["overwrote_existing"])
+    elif family == "run_card":
+        allowed = {"event": ("push", "manual", "none"),
+                   "run": ("success", "failure", "skipped", "running"),
+                   "job": ("success", "failure", "skipped", "running"),
+                   "step": ("success", "failure", "skipped", "running")}
+        for key, values in allowed.items():
+            if type(packet[key]) is not str or packet[key] not in values:
+                raise PublicSyntheticInputError("RUN_CARD_FIELD_HOLD")
+        _boolean(packet, ("new_archive", "no_op"))
+        if type(packet["attempt"]) is not int or not 1 <= packet["attempt"] <= 10:
+            raise PublicSyntheticInputError("RUN_ATTEMPT_FIELD_HOLD")
+        consistent = (packet["event"] == "push"
+                      and all(packet[x] == "success" for x in ("run", "job", "step"))
+                      and packet["attempt"] == 1 and packet["new_archive"]
+                      and not packet["no_op"])
+    else:
+        if type(packet["change_kind"]) is not str or packet["change_kind"] not in (
+                "direct", "follow_on", "unrelated"):
+            raise PublicSyntheticInputError("RECOVERY_KIND_FIELD_HOLD")
+        _boolean(packet, ("pending_lineage", "archive_lineage", "receipt_linked",
+                          "manual_override", "recovery_failed"))
+        acceptable_change = (packet["change_kind"] == "direct"
+                             or (packet["change_kind"] == "follow_on"
+                                 and packet["pending_lineage"]
+                                 and packet["archive_lineage"]))
+        consistent = (acceptable_change and packet["receipt_linked"]
+                      and not packet["manual_override"]
+                      and not packet["recovery_failed"])
+    return {
+        "family": family,
+        "scenario": ("PUBLIC_SYNTHETIC_STAGE_CONSISTENT_NOT_PRIVATE_PROOF"
+                     if consistent else "PUBLIC_SYNTHETIC_STAGE_HOLD"),
+        "public_synthetic_only": True,
+        "private_brain_parity_verified": False,
+        "real_evidence_verified": False,
+        "operational_execution_allowed": False,
+        "private_ci_replacement_allowed": False,
+        "publication_authorized": False,
+    }
