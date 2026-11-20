@@ -11,6 +11,12 @@ ALLOWLIST = frozenset({
     "docs/CI_MIGRATION_01.md", "javis_public_ci/evidence.py",
     "javis_public_ci/synthetic_gates.py", "tests/test_evidence.py",
     "tests/test_synthetic_gates.py",
+    "docs/PUBLIC_RESEARCH_RELEASE_POLICY.md",
+    "javis_public_research/__init__.py",
+    "javis_public_research/draft_writer.py",
+    "javis_public_research/validator.py",
+    "tests/test_public_research_validator.py",
+    "tests/test_public_research_writer.py",
 })
 
 
